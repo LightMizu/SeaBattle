@@ -7,6 +7,7 @@ from copy import deepcopy
 from loguru import logger 
 
 
+
 class Button():
 	color = None
 	rect = None
@@ -19,6 +20,9 @@ class Button():
 	def draw(self, screen):
 		logger.info(f'Button drawing in {self.rect} {self.color}')
 		pygame.draw.rect(screen, self.color, self.rect, border_radius=6)
+		font = pygame.font.SysFont('Arial',25)
+		text = font.render('Connect',False,(255,255,255))
+		screen.blit(text, (self.rect.x+12, self.rect.y+10))
 		pygame.display.flip()
 class Boat():
 	size = 1
@@ -164,7 +168,7 @@ def runPyGame():
 		if Do:
 			buttons = [Button(field_size*2-step*1.35,field_size-step*1.25,100,50,(100,255,100))]
 		else:
-			buttons = []
+			buttons = [Button(field_size*2-step*1.35,field_size-step*1.25,100,50,(100,255,100))]
 		dt = fpsClock.tick(fps)
 
 if __name__ == '__main__':
