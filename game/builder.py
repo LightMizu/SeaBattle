@@ -1,11 +1,20 @@
+import os
 import sys
-
 import pygame
 from pygame.locals import *
 from globals import *
 from copy import deepcopy
 from loguru import logger 
+import socket
+from json import dumps
+from random import choices
+from string import ascii_letters, digits
 
+os.system('clear')
+
+ALL = ascii_letters + digits
+get_token = lambda :''.join(choices(ALL,k=16))
+TOKEN = get_token()
 
 
 class Button():
@@ -18,12 +27,47 @@ class Button():
 	def is_click(self, x, y):
 		return self.rect.collidepoint(x,y)
 	def draw(self, screen):
-		logger.info(f'Button drawing in {self.rect} {self.color}')
 		pygame.draw.rect(screen, self.color, self.rect, border_radius=6)
-		font = pygame.font.SysFont('Arial',25)
-		text = font.render('Connect',False,(255,255,255))
+		font = pygame.font.SysFont(None,30)
+		text = font.render('Connect',False,(100,0,100))
 		screen.blit(text, (self.rect.x+12, self.rect.y+10))
 		pygame.display.flip()
+
+class Network():
+	HOST = None
+	PORT = None
+	TOKEN = None
+	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+	def __init__(self, host, port):
+		self.sock.connect((host,port))
+		self.PORT = port
+		self.HOST = host
+		self.TOKEN = get_token()
+	def send(self,message):
+		self.sock.send(dumps(message).encode())
+	def test_connect(self):
+		message = {'type':'echo'}
+		self.sock.send(dumps(message).encode())
+		data = self.sock.recv(1024)
+		data = data.decode('utf-8')
+		if data == 'Success':
+			return True
+		return False
+	def build(self, array):
+		message = {'type':'build',
+					'token':self.TOKEN,
+					'args': {'field': array}}
+		self.send(message)
+		data = self.sock.recv(1024)
+		data = data.decode()
+		if data == 'Success':
+			os.system(f'python game.py {self.TOKEN}')
+			pygame.quit()
+			sys.exit()
+		return False
+
+conn = Network('',8001)
+
 class Boat():
 	size = 1
 	rotated = False
@@ -96,8 +140,11 @@ class Cruiser(Boat):
 class Ship(Boat):
 	size = 4
 
-def update(dt, boats):
-	global field_one, field_two
+def build(boats):
+	global conn
+	conn.build(convert_to_list(boats))
+	
+def update(dt, boats, buttons):
 	ans = False
 	flag = True
 	pos = pygame.mouse.get_pos()
@@ -126,6 +173,9 @@ def update(dt, boats):
 					if boat.rect.collidepoint(*positon):
 						boat.pick(boats)
 						continue
+				for button in buttons:
+					if button.is_click(*positon):
+						build(boats)
 			elif event.button == 3:
 				for boat in boats:
 					if boat.picked and boat.rect.collidepoint(*event.pos):
@@ -149,6 +199,22 @@ def draw(screen, boats, buttons):
 	
 	pygame.display.flip()
 
+def convert_to_list(boats):
+	l = [[0 for i in range(10)] for i in range(10)]
+	for boat in boats:
+		i,j = boat.rect.x//step, boat.rect.y//step
+		l[j][i] = 1
+		for index in range(boat.size):
+			if boat.rotated:
+				l[j][i+index] = 1
+			else:
+				l[j+index][i] = 1
+		
+	return l
+
+
+
+
 @logger.catch
 def runPyGame():
 	
@@ -159,16 +225,23 @@ def runPyGame():
 	screen = pygame.display.set_mode((width, height))
 	
 	dt = 1/fps
-	
+
+	flag = True
 	buttons = []
 	boats = [Boat(step*10+step*2*i,0,(0,255,0)) for i in range(1,5)] + [Destroyer(step*10+step*2*i,step*2,(0,255,0)) for i in range(1,4)] + [Cruiser(step*10+step*2*i,step*5,(0,255,0)) for i in range(1,3)] + [Ship(step*10+step*2,step*9,(0,255,0),True)]
-	while True:
-		Do = update(dt ,boats)
+	
+	run = conn.test_connect()
+	while run:
+		Do = update(dt ,boats, buttons)
 		draw(screen, boats, buttons)
 		if Do:
-			buttons = [Button(field_size*2-step*1.35,field_size-step*1.25,100,50,(100,255,100))]
+			if flag:
+				buttons = [Button(field_size*2-step*1.35,field_size-step*1.25,100,50,(100,255,100))]
+				flag = False
+				logger.debug('\n'+'\n'.join(map(str,convert_to_list(boats))))
 		else:
-			buttons = [Button(field_size*2-step*1.35,field_size-step*1.25,100,50,(100,255,100))]
+			flag = True
+			buttons = []
 		dt = fpsClock.tick(fps)
 
 if __name__ == '__main__':
