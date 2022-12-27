@@ -15,7 +15,7 @@ class Network():
 	port = None
 	token = None
 	sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-	def __init__(self, port, token, host = ''):
+	def __init__(self, port, token, host = '127.0.0.1'):
 		self.host = host
 		self.port = port
 		self.token = token
@@ -35,9 +35,20 @@ class Network():
 			return data['field']
 		else:
 			return []
+	def shoot(self, x, y):
+		message = {'type': 'shoot',
+					'token': self.token}
+		message['args'] = {'position':(y,x)}
+		self.send(message)
 
-def update():
+def update(network):
 	for event in pygame.event.get():
+		if event.type == pygame.MOUSEBUTTONDOWN:
+			pos = event.pos
+			if event.button == 1:
+				positon = (pos[0]//step-11,pos[1]//step)
+				print(positon)
+				network.shoot(*positon)
 		if event.type == pygame.QUIT:
 			pygame.quit()
 			exit()
@@ -69,7 +80,7 @@ def main(token):
 	field = network.get_field()
 	while True:
 		draw(screen,field,[])
-		update()
+		update(network)
 
 if __name__ == '__main__':
 	if args.get('Token',None):

@@ -1,38 +1,77 @@
 import socket
 import select
 from json import loads, dumps
+from random import choice
 
 players = []
-field = {}
+fields = {}
+turn = None
 def process(data, connect):
-	global players
+	global players, turn, fields
 	data = loads(data)
 	match data['type']:
 		case 'echo':
 			connect.send(b'Success')
-		case 'connect':
-			token = data['token']
-			if token in players:
-				connect.send(b'You already connected')
-			elif len(players) >= 2:
-				connect.send(b'Maximum number of players')
-			else:
-				players.append(token)
-				connect.send(b'Success')
 		case 'build':
 			token = data['token']
-			if not token in field:
-				field[token] = data['args']['field']
+			if not token in fields and len(players) < 2:
+				fields[token] = data['args']['field']
+				players.append(token)
 				print(f'{token} ', *data['args']['field'], sep='\n')
 				connect.send(b'Success')
+			if len(players) == 2:
+				if not turn:
+					turn = choice(players)
+					print(turn)
+				else:
+					connect.send(b'Max players')
 		case 'get_field':
 			try:
-				connect.send(dumps({'field': field[data['token']]}).encode())
+				connect.send(dumps({'field': fields[data['token']]}).encode())
 			except KeyError:
 				connect.send(b'No access')
+		case 'shoot':
+			token = data['token']
+			if not turn:
+				print('Ждём 2 игрока')
+				connect.send(b'No you turn')
+			else:
+				if token in players:
+					if turn == token:
+						field = fields[players[players.index(turn)-1]]
+						x,y = data['args']['position']
+						pos = [(0,1),(0,-1),(1,0),(-1,0)]
+						h = set()
+						if field[x][y] == 2:
+							print('Уже ходили')
+						elif field[x][y] == 0:
+							print('Мимо')
+						elif field[x][y] == 1:
+							field[x][y] = 2
+							h.add((x,y))
+							q = [(x,y)]
+							while q:
+								n = q[-1]
+								q.pop()
+								for i in pos:
+									try:
+										if (field[n[0]+i[0]][n[1]+i[1]] == 2 or field[n[0]+i[0]][n[1]+i[1]] == 1) and ((n[0]+i[0],n[1]+i[1]) not in h):
+											q.append((n[0]+i[0],n[1]+i[1]))
+											h.add((n[0]+i[0],n[1]+i[1]))
+									except IndexError:
+										pass
+						h = list(h)
+						k = 0
+						for i in h:
+							if field[i[0]][i[1]] == 2: k+=1
+						if k == len(h):
+							print('Убит')
+						else:
+							print('Подбит')
+				
 
 s = socket.socket()
-s.bind(('',8001))
+s.bind(('127.0.0.1',8001))
 s.listen(1)
 readable = [s] # list of readable sockets.  s is readable if a client is waiting.
 i = 0

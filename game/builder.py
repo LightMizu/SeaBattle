@@ -66,7 +66,7 @@ class Network():
 			sys.exit()
 		return False
 
-conn = Network('',8001)
+conn = Network('127.0.0.1',8001)
 
 class Boat():
 	size = 1
