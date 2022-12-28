@@ -34,7 +34,7 @@ def process(data, connect):
 			token = data['token']
 			if not turn:
 				print('Ждём 2 игрока')
-				connect.send(b'No you turn')
+				connect.send(b'Waiting 2 player')
 			else:
 				if token in players:
 					if turn == token:
@@ -43,9 +43,10 @@ def process(data, connect):
 						pos = [(0,1),(0,-1),(1,0),(-1,0)]
 						h = set()
 						if field[x][y] == 2:
-							print('Уже ходили')
+							connect.send(b'Repeating')
 						elif field[x][y] == 0:
-							print('Мимо')
+							turn = players[players.index(turn)-1]
+							connect.send(b'Miss')
 						elif field[x][y] == 1:
 							field[x][y] = 2
 							h.add((x,y))
@@ -60,14 +61,14 @@ def process(data, connect):
 											h.add((n[0]+i[0],n[1]+i[1]))
 									except IndexError:
 										pass
-						h = list(h)
-						k = 0
-						for i in h:
-							if field[i[0]][i[1]] == 2: k+=1
-						if k == len(h):
-							print('Убит')
-						else:
-							print('Подбит')
+							h = list(h)
+							k = 0
+							for i in h:
+								if field[i[0]][i[1]] == 2: k+=1
+							if k == len(h):
+								connect.send(b'Killed')
+							else:
+								connect.send(b'Hit')
 				
 
 s = socket.socket()
