@@ -63,7 +63,8 @@ def update(network):
 						pos = [(0,1),(0,-1),(1,0),(-1,0)]
 						pos1 = [(-1,1),(1,-1),(1,1),(-1,-1)] + pos
 						q = [(x,y)]
-						print(x,y)
+						h = set()
+						h.add((x,y))
 						while q:
 							print(*field_opponent,sep = '\n')
 							print(q)
@@ -74,8 +75,9 @@ def update(network):
 								try:
 									print(n[0]+i[0],n[1]+i[1])
 									print(field_opponent[n[0]+i[0]][n[1]+i[1]])
-									if field_opponent[n[0]+i[0]][n[1]+i[1]] == (50,150,50):
+									if field_opponent[n[0]+i[0]][n[1]+i[1]] == (50,150,50) and (n[0]+i[0],n[1]+i[1]) not in h:
 										q.append((n[0]+i[0],n[1]+i[1]))
+										h.add((n[0]+i[0],n[1]+i[1]))
 								except IndexError:
 									pass
 							for j in pos1:

@@ -43,9 +43,11 @@ def process(data, connect):
 						pos = [(0,1),(0,-1),(1,0),(-1,0)]
 						h = set()
 						if field[x][y] == 2:
+							print('Repeat')
 							connect.send(b'Repeating')
 						elif field[x][y] == 0:
 							turn = players[players.index(turn)-1]
+							print('Miss')
 							connect.send(b'Miss')
 						elif field[x][y] == 1:
 							field[x][y] = 2
@@ -66,9 +68,13 @@ def process(data, connect):
 							for i in h:
 								if field[i[0]][i[1]] == 2: k+=1
 							if k == len(h):
+								print('Killed')
 								connect.send(b'Killed')
 							else:
+								print('Hit')
 								connect.send(b'Hit')
+					else:
+						connect.send(b'Not you turn')
 				
 
 s = socket.socket()
@@ -90,11 +96,14 @@ with s:
 				print('\r{}:'.format(a),'connected')
 				readable.append(c) # add the client
 			else:
-				# read from a client
-				data = rs.recv(1024)
-				if not data:
-					print('\r{}:'.format(rs.getpeername()),'disconnected')
-					readable.remove(rs)
-					rs.close()
+				try:
+					data = rs.recv(1024)
+				except socket.error:
+					pass
 				else:
-					process(data, rs)
+					if not data:
+						print('\r{}:'.format(rs.getpeername()),'disconnected')
+						readable.remove(rs)
+						rs.close()
+					else:
+						process(data, rs)

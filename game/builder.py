@@ -111,7 +111,7 @@ class Boat():
 	def pick(self,boats):
 		collaide = self.rect.collidelistall(boats)
 		logger.info(f"Self rect collide with {collaide}")
-		if not self.rect.colliderect(Rect((width-step)//2+1, 0, field_size+step*2, field_size+step*2)):
+		if not self.rect.colliderect(Rect((width-step)//2+1, 0, field_size+step*2, field_size+step*2)) and not self.rect.colliderect(Rect(0,field_size+2,field_size*3,2)):
 			if len(collaide) == 1:
 				self.picked = not self.picked
 		elif self.rect == self.default[0]:
